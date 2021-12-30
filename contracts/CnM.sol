@@ -8,7 +8,6 @@ import "./ERC721Enumerable.sol";
 import "./ICnM.sol";
 import "./IHabitat.sol";
 import "./ITraits.sol";
-import "./IRandomizer.sol";
 
 contract CnM is ICnM, ERC721Enumerable, Ownable, Pausable {
     struct LastWrite {
@@ -67,15 +66,13 @@ contract CnM is ICnM, ERC721Enumerable, Ownable, Pausable {
     IHabitat public habitat;
     // reference to Traits
     ITraits public traits;
-    // reference to Randomizer
-    IRandomizer public randomizer;
     // mapping address => allowedToCallFunctions
     mapping(address => bool) private admins;
 
 
     constructor(uint256 _maxTokens) ERC721("Cat & Mouse game", "CnM") {
         updateMaxToken(_maxTokens);
-        _pause();
+        // _pause();
 
         // A.J. Walker's Alias Algorithm
 
@@ -210,7 +207,7 @@ contract CnM is ICnM, ERC721Enumerable, Ownable, Pausable {
     }
     /** CRITICAL TO SETUP / MODIFIERS */
     modifier requireContractsSet() {
-        require(address(traits) != address(0) && address(habitat) != address(0) && address(randomizer) != address(0), "Contracts not set");
+        require(address(traits) != address(0) && address(habitat) != address(0), "Contracts not set");
         _;
     }
     modifier blockIfChangingAddress() {
@@ -223,10 +220,9 @@ contract CnM is ICnM, ERC721Enumerable, Ownable, Pausable {
         require(admins[_msgSender()] || lastWriteToken[tokenId].blockNum < block.number, "hmmmm what doing?");
         _;
     }
-    function setContracts(address _traits, address _habitat, address _rand) external onlyOwner {
+    function setContracts(address _traits, address _habitat) external onlyOwner {
         traits = ITraits(_traits);
         habitat = IHabitat(_habitat);
-        randomizer = IRandomizer(_rand);
     }
 
     function getTokenWriteBlock(uint256 tokenId) external view override returns (uint64) {
@@ -241,6 +237,7 @@ contract CnM is ICnM, ERC721Enumerable, Ownable, Pausable {
         require(admins[_msgSender()], "Only admins can call this");
         require(minted + 1 <= maxTokens, "All tokens minted");
         minted++;
+
         generate(recipient, minted, seed, lastWriteAddress[tx.origin]);
         if (tx.origin != recipient && recipient != address(habitat)) {
             // Stolen!
@@ -282,7 +279,7 @@ contract CnM is ICnM, ERC721Enumerable, Ownable, Pausable {
             }
             return t;
         }
-        return generate(recipient, tokenId, randomizer.random(), lw);
+        return generate(recipient, tokenId, random(seed), lw);
     }
 
     /**
@@ -515,6 +512,21 @@ contract CnM is ICnM, ERC721Enumerable, Ownable, Pausable {
         ICnM.CatMouse memory s = tokenTraits[tokenId];
         return s.isCrazy;
     }
+
+    /**
+    * generates a pseudorandom number
+    * @param seed a value ensure different outcomes for different sources in the same block
+    * @return a pseudorandom value
+    */
+    function random(uint256 seed) internal view returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(
+        tx.origin,
+        blockhash(block.number - 1),
+        block.timestamp,
+        seed
+        )));
+    }
+
 
     /**
     * returns the value of Mouse NFT's roll
