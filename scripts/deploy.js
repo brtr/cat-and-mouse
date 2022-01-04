@@ -5,6 +5,11 @@ async function main() {
   await traitsContract.deployed();
   console.log("Traits deployed to:", traitsContract.address);
 
+  contractFactory = await hre.ethers.getContractFactory("Randomizer");
+  const randomizerContract = await contractFactory.deploy();   //CONTRACT INFO
+  await randomizerContract.deployed();
+  console.log("Randomizer deployed to:", randomizerContract.address);
+
   contractFactory = await hre.ethers.getContractFactory("Habitat");
   const habitatContract = await contractFactory.deploy();   //CONTRACT INFO
   await habitatContract.deployed();

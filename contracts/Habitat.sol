@@ -10,6 +10,7 @@ import "./ICnMGame.sol";
 import "./ICnM.sol";
 import "./ICHEDDAR.sol";
 import "./IHabitat.sol";
+import "./IRandomizer.sol";
 import "./IHouse.sol";
 import "./IHouseGame.sol";
 
@@ -60,6 +61,9 @@ contract Habitat is IHabitat, Ownable, ReentrancyGuard, IERC721Receiver, Pausabl
 
     // reference to the $CHEDDAR contract for minting $CHEDDAR earnings
     ICHEDDAR public cheddarToken;
+
+    // reference to Randomizer
+    IRandomizer public randomizer;
 
     // maps Mouse tokenId to stake
     mapping(uint256 => Stake) private habitat;
@@ -119,22 +123,23 @@ contract Habitat is IHabitat, Ownable, ReentrancyGuard, IERC721Receiver, Pausabl
     /**
      */
     constructor() {
-        // _pause();
+        _pause();
     }
 
     /** CRITICAL TO SETUP */
 
     modifier requireContractsSet() {
         require(address(cnmNFT) != address(0) && address(cheddarToken) != address(0)
-        && address(cnmGame) != address(0) && address(houseGame) != address(0) && address(houseNFT) != address(0), "Contracts not set");
+        && address(cnmGame) != address(0) && address(randomizer) != address(0) && address(houseGame) != address(0) && address(houseNFT) != address(0), "Contracts not set");
         _;
     }
 
-    function setContracts(address _cnmNFT, address _cheddar, address _cnmGame, address _houseGame, address _houseNFT) external onlyOwner {
+    function setContracts(address _cnmNFT, address _cheddar, address _cnmGame, address _houseGame, address _rand, address _houseNFT) external onlyOwner {
         cnmNFT = ICnM(_cnmNFT);
         houseNFT = IHouse(_houseNFT);
         cheddarToken = ICHEDDAR(_cheddar);
         cnmGame = ICnMGame(_cnmGame);
+        randomizer = IRandomizer(_rand);
         houseGame = IHouseGame(_houseGame);
     }
 
@@ -342,7 +347,7 @@ contract Habitat is IHabitat, Ownable, ReentrancyGuard, IERC721Receiver, Pausabl
         require(stake.owner == _msgSender(), "Don't own the given token");
         owed = getOwedForCnM(tokenId);
         require(!(unstake && owed < MINIMUM), "You can't unstake mice until they have 20k $CHEDDAR.");
-        uint256 seed = random();
+        uint256 seed = randomizer.random();
         uint256 seedChance = seed >> 16;
         uint8 mouseRoll = cnmNFT.getTokenRoll(tokenId);
         if (unstake) {
@@ -628,14 +633,6 @@ contract Habitat is IHabitat, Ownable, ReentrancyGuard, IERC721Receiver, Pausabl
             houseNFT.safeTransferFrom(address(this), _msgSender(), tokenId, "");
             emit HouseClaimed(tokenId, true, 0);
         }
-    }
-
-    function random() internal view returns (uint256) {
-        return uint256(keccak256(abi.encodePacked(
-        tx.origin,
-        blockhash(block.number - 1),
-        block.timestamp
-        )));
     }
     /** ACCOUNTING */
 

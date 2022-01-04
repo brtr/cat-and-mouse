@@ -22,9 +22,9 @@ contract HouseGame is Ownable, ReentrancyGuard, Pausable {
   }
 
   // address -> commit id -> commits
-  mapping(address => mapping(uint16 => MintCommit)) private _mintCommits;
+  mapping(address => mapping(uint256 => MintCommit)) private _mintCommits;
   // address -> commit num of commit need revealed for account
-  mapping(address => uint16) private _pendingCommitId;
+  mapping(address => uint256) private _pendingCommitId;
   // pending mint amount
   uint16 private pendingMintAmt;
   // flag for commits allowment
@@ -82,7 +82,7 @@ contract HouseGame is Ownable, ReentrancyGuard, Pausable {
 
   function deleteCommit(address addr) external {
     require(owner() == _msgSender() || admins[_msgSender()], "Only admins can call this");
-    uint16 commitIdCur = _pendingCommitId[_msgSender()];
+    uint256 commitIdCur = _pendingCommitId[_msgSender()];
     require(commitIdCur > 0, "No pending commit");
     delete _mintCommits[addr][commitIdCur];
     delete _pendingCommitId[addr];
@@ -129,7 +129,7 @@ contract HouseGame is Ownable, ReentrancyGuard, Pausable {
   }
 
   function reveal(address addr) internal {
-    uint16 commitIdCur = _pendingCommitId[addr];
+    uint256 commitIdCur = _pendingCommitId[addr];
     uint256 seed = randomizer.getCommitRandom(commitIdCur);
     require(commitIdCur > 0, "No pending commit");
     require(seed > 0, "random seed not set");

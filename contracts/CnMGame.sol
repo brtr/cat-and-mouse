@@ -36,11 +36,11 @@ contract CnMGame is Ownable, ReentrancyGuard, Pausable {
 
   bytes32 public root;
   // address -> mint commit id -> commits
-  mapping(address => mapping(uint16 => MintCommit)) private _mintCommits;
+  mapping(address => mapping(uint256 => MintCommit)) private _mintCommits;
   // address -> roll commit id -> roll commits
   // mapping(address => mapping(uint16 => MintCommit)) private _rollCommits;
   // address -> Id of commit need revealed for account
-  mapping(address => uint16) private _pendingCommitId;
+  mapping(address => uint256) private _pendingCommitId;
   // address -> Id of rolling commit need revealed for account
   // mapping(address => uint16) private _pendingRollCommitId;
 
@@ -78,6 +78,7 @@ contract CnMGame is Ownable, ReentrancyGuard, Pausable {
   uint256[] _shares = [40,192, 192, 192, 192, 192];
 
   constructor() {
+    _pause();
   }
 
   /** CRITICAL TO SETUP */
@@ -89,11 +90,12 @@ contract CnMGame is Ownable, ReentrancyGuard, Pausable {
       _;
   }
 
-  function setContracts(address _cheddar, address _traits, address _cnm, address _habitat) external onlyOwner {
+  function setContracts(address _cheddar, address _traits, address _cnm, address _habitat, address _randomizer) external onlyOwner {
     cheddarToken = ICHEDDAR(_cheddar);
     traits = ITraits(_traits);
     cnmNFT = ICnM(_cnm);
     habitat = IHabitat(_habitat);
+    randomizer = IRandomizer(_randomizer);
   }
 
   /** EXTERNAL */
@@ -114,7 +116,7 @@ contract CnMGame is Ownable, ReentrancyGuard, Pausable {
 
   function deleteCommit(address addr) external {
     require(owner() == _msgSender() || admins[_msgSender()], "Only admins can call this");
-    uint16 commitIdCur = _pendingCommitId[_msgSender()];
+    uint256 commitIdCur = _pendingCommitId[_msgSender()];
     require(commitIdCur > 0, "No pending commit");
     delete _mintCommits[addr][commitIdCur];
     delete _pendingCommitId[addr];
@@ -194,7 +196,7 @@ contract CnMGame is Ownable, ReentrancyGuard, Pausable {
   }
 
   function reveal(address addr) internal {
-    uint16 commitIdCur = _pendingCommitId[addr];
+    uint256 commitIdCur = _pendingCommitId[addr];
     uint256 seed = randomizer.getCommitRandom(commitIdCur);
     require(commitIdCur > 0, "No pending commit");
     require(seed > 0, "random seed not set");

@@ -1,5 +1,5 @@
 // const traits = require("../data.json");
-const { TRAITS_ADDRESS, HABITAT_ADDRESS, CHEDDAR_ADDRESS, CNMGAME_ADDRESS, CNM_ADDRESS, HOUSEGAME_ADDRESS, HOUSE_ADDRESS } = process.env;
+const { TRAITS_ADDRESS, HABITAT_ADDRESS, CHEDDAR_ADDRESS, CNMGAME_ADDRESS, CNM_ADDRESS, HOUSEGAME_ADDRESS, HOUSE_ADDRESS, RANDOM_ADDRESS } = process.env;
 const main = async () => {
   let contractFactory = await hre.ethers.getContractFactory('Traits');
   const traitContract = contractFactory.attach(TRAITS_ADDRESS);
@@ -31,16 +31,21 @@ const main = async () => {
 
   await traitContract.setCnM(CNM_ADDRESS);
   console.log("set cnm for traits success");
-  await habitatContract.setContracts(CNM_ADDRESS, CHEDDAR_ADDRESS, CNMGAME_ADDRESS, HOUSEGAME_ADDRESS, HOUSE_ADDRESS);
+  await habitatContract.setContracts(CNM_ADDRESS, CHEDDAR_ADDRESS, CNMGAME_ADDRESS, HOUSEGAME_ADDRESS, RANDOM_ADDRESS, HOUSE_ADDRESS);
+  await habitatContract.setPaused(false);
   console.log("set habitat contract success");
   await cheddarContract.addAdmin(HABITAT_ADDRESS);
   console.log("set cheddar admin success");
-  await cnmGameContract.setContracts(CHEDDAR_ADDRESS, TRAITS_ADDRESS, CNM_ADDRESS, HABITAT_ADDRESS);
+  await cnmGameContract.addAdmin(CNMGAME_ADDRESS);
+  await cnmGameContract.setContracts(CHEDDAR_ADDRESS, TRAITS_ADDRESS, CNM_ADDRESS, HABITAT_ADDRESS, RANDOM_ADDRESS);
   await cnmGameContract.togglePublicSale();
   await cnmGameContract.setAllowCommits(true);
+  await cnmGameContract.setPaused(false);
   console.log("set cnm game contract success");
-  await CnMContract.setContracts(TRAITS_ADDRESS, HABITAT_ADDRESS);
+  await CnMContract.setContracts(TRAITS_ADDRESS, HABITAT_ADDRESS, RANDOM_ADDRESS);
   await CnMContract.addAdmin(CNMGAME_ADDRESS);
+  await CnMContract.addAdmin(HABITAT_ADDRESS);
+  await CnMContract.setPaused(false);
   console.log("set cnm contract success");
 };
 
