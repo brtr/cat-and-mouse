@@ -26,7 +26,7 @@ contract CnMGame is Ownable, ReentrancyGuard, Pausable {
   }
 
   // on-sale price (genesis NFTS)
-  uint256 public MINT_PRICE = 0.075 ether;
+  uint256 public MINT_PRICE = 0.001 ether;
   // rolling price
   uint256 public ROLL_COST = 3000 ether;
   bool public isWhitelistActive;

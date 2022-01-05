@@ -1,4 +1,4 @@
-// const traits = require("../data.json");
+const traits = require("../data.json");
 const { TRAITS_ADDRESS, HABITAT_ADDRESS, CHEDDAR_ADDRESS, CNMGAME_ADDRESS, CNM_ADDRESS, HOUSEGAME_ADDRESS, HOUSE_ADDRESS, RANDOM_ADDRESS } = process.env;
 const main = async () => {
   let contractFactory = await hre.ethers.getContractFactory('Traits');
@@ -22,12 +22,12 @@ const main = async () => {
   // contractFactory = await hre.ethers.getContractFactory('House');
   // const houseContract = contractFactory.attach(HOUSE_ADDRESS);
 
-  // for (const trait of traits) {
-  //   const traitIds = [...Array(trait.data.length).keys()];
-  //   tx = await traitContract.uploadTraits(trait.id, traitIds, trait.data);
-  //   tx.wait();
-  // }
-  // console.log("Uploaded Traits Data");
+  for (const trait of traits) {
+    const traitIds = [...Array(trait.data.length).keys()];
+    tx = await traitContract.uploadTraits(trait.id, traitIds, trait.data);
+    tx.wait();
+  }
+  console.log("Uploaded Traits Data");
 
   let txn = await traitContract.setCnM(CNM_ADDRESS);
   txn.wait();
