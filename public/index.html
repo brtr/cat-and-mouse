@@ -1,21 +1,28 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Claim FMB</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
-    <script src="https://npmcdn.com/moralis@0.0.94/dist/moralis.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@codexteam/ajax"></script>
+    <title>Cat & Mouse game (CnM)</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
     <script type="module" src="/js/main.js"></script>
   </head>
 
   <body>
-    <h1 class="mx-3">Claim FMB</h1>
+    <h1 class="mx-3">Cat & Mouse game (CnM)</h1>
     <div class="loginBtn">
       <span id="address"></span>
       <button id="btn-login">Metamask Login</button>
       <button id="btn-logout" class="float-right">Logout</button>
     </div>
     <div class="mx-3">
+      <input id="mintCount" type="number" placeholder="mint count" />
+      <button id="btn-mint">Mint</button>
+    </div>
+    <div class="mx-3">
+      <input id="stakeTokenId" type="number" placeholder="tokenId" />
+      <button id="btn-stake">Stake</button>
+    </div>
+    <div class="mx-3">
+      <input id="claimTokenId" type="number" placeholder="tokenId" />
       <button id="btn-claim">Claim</button>
     </div>
     <div id="loader">
