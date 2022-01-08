@@ -1,7 +1,10 @@
-import { cnmGameAddress, cnmNFTAddress, HabitatAddress, cnmGameABI, cnmNFTABI, HabitatABI } from "./data.js";
+import { cnmGameAddress, cnmNFTAddress, cheddarAddress, cnmGameABI, cnmNFTABI, cheddarABI } from "./data.js";
 
 (function() {
-  let loginAddress;
+  let loginAddress = localStorage.getItem("loginAddress");
+  let currentPrice;
+  let mintPrice;
+  let mintAmount = 1;
   const TargetChain = {
     id: "5",
     name: "goerli"
@@ -10,14 +13,19 @@ import { cnmGameAddress, cnmNFTAddress, HabitatAddress, cnmGameABI, cnmNFTABI, H
   const provider = new ethers.providers.Web3Provider(web3.currentProvider);
   const signer = provider.getSigner();
   const cnmNFTContract = new ethers.Contract(cnmNFTAddress, cnmNFTABI, provider);
-  const HabitatContract = new ethers.Contract(HabitatAddress, HabitatABI, provider);
-  const habitatWithSigner = HabitatContract.connect(signer);
-  const loginButton = document.getElementById('btn-login');
-  const logoutButton = document.getElementById('btn-logout');
+  const cnmGameContract = new ethers.Contract(cnmGameAddress, cnmGameABI, provider);
+  const CheddarContract = new ethers.Contract(cheddarAddress, cheddarABI, provider);
+  const loginButton = document.getElementById('btnLogin');
+  const btnLoginBlock = document.getElementById('btnLoginBlock');
   const address = document.getElementById('address');
-  const mintButton = document.getElementById('btn-mint');
-  const stakeButton = document.getElementById('btn-stake');
-  const claimButton = document.getElementById('btn-claim');
+  const chedAmount = document.getElementById('chedAmount');
+  const mintPriceEl = document.getElementById('mintPrice');
+  const mintAmountEl = document.getElementById('mintAmount');
+  const currentPriceEl = document.getElementById('currentPrice');
+  const addBtn = document.getElementById('addBtn');
+  const subBtn = document.getElementById('subBtn');
+  const mintButton = document.getElementById('mintBtn');
+  const mintStakeButton = document.getElementById('mintStakeBtn');
 
   const toggleLoader = function() {
     const x = document.getElementById('loader');
@@ -30,89 +38,114 @@ import { cnmGameAddress, cnmNFTAddress, HabitatAddress, cnmGameABI, cnmNFTABI, H
 
   const toggleLoginBtns = function() {
     if (loginAddress == null) {
-      loginButton.style.display = "block"
-      logoutButton.style.display = "none"
+      btnLoginBlock.style.display = "block"
       address.style.display = "none"
     } else {
-      loginButton.style.display = "none"
-      logoutButton.style.display = "block"
-
+      btnLoginBlock.style.display = "none"
       address.textContent = loginAddress;
       address.style.display = "block"
     }
   }
 
-  const checkLogin = async function() {
+  const login = async function () {
     const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
     if (accounts.length > 0) {
+      localStorage.setItem("loginAddress", accounts[0]);
       loginAddress = accounts[0];
     } else {
+      localStorage.removeItem("loginAddress");
       loginAddress = null;
     }
+
+    checkLogin();
+  }
+
+  const checkLogin = function() {
     toggleLoginBtns();
     toggleLoader();
+    if (loginAddress) {
+      getCheddarBalance();
+      getCurrentPrice();
+    }
+  }
+
+  const getCheddarBalance = async function () {
+    let balance = await CheddarContract.balanceOf(loginAddress);
+    balance = ethers.utils.formatEther(balance)
+    chedAmount.textContent = parseFloat(balance).toFixed(4);
+  }
+
+  const getCurrentPrice = async function () {
+    const price = await cnmGameContract.MINT_PRICE();
+    currentPrice = ethers.utils.formatEther(price)
+    currentPriceEl.textContent = currentPrice;
+
+    getMintPrice();
+  }
+
+  const getMintPrice = function () {
+    mintPrice = currentPrice * parseInt(mintAmount);
+    mintPriceEl.textContent = mintPrice;
+  }
+
+  const mint = async function(stake) {
+    const claimable = await cnmNFTContract.isClaimable();
+    const price = claimable ? 0 : mintPrice;
+    const cnmGameWithSigner = cnmGameContract.connect(signer);
+    toggleLoader();
+    const commit = await cnmGameWithSigner.mintCommit(mintAmount, stake, {value: ethers.utils.parseUnits(price.toString(), "ether")});
+    console.log("mint commit receipt: ", commit);
+    await commit.wait();
+    cnmGameWithSigner.mintReveal()
+    .then(function(receipt) {
+      console.log("mint reveal receipt: ", receipt);
+      toggleLoader();
+      alert("Mint success");
+    })
   }
 
   if (window.ethereum) {
     loginButton.addEventListener('click', function() {
       toggleLoader();
-      checkLogin();
+      login();
     })
 
-    logoutButton.addEventListener('click', function() {
-      loginAddress = null;
-      toggleLoginBtns();
+    mintButton.addEventListener('click', function() {
+      mint(false);
     })
 
-    mintButton.addEventListener('click', async function() {
-      const cnmGameContract = new ethers.Contract(cnmGameAddress, cnmGameABI, provider);
-      const claimable = await cnmNFTContract.isClaimable();
-      const amount = document.getElementById("mintCount").value;
-      const price = claimable ? 0 : amount * 0.001
-      const cnmGameWithSigner = cnmGameContract.connect(signer);
-      toggleLoader();
-      const commit = await cnmGameWithSigner.mintCommit(amount, true, {value: ethers.utils.parseUnits(price.toString(), "ether")});
-      console.log("mint commit receipt: ", commit);
-      await commit.wait();
-      cnmGameWithSigner.mintReveal()
-      .then(function(receipt) {
-        console.log("mint reveal receipt: ", receipt);
-        toggleLoader();
-        alert("Mint success");
-      })
-    })
-
-    stakeButton.addEventListener('click', function() {
-      const tokenId = document.getElementById("stakeTokenId").value;
-      habitatWithSigner.addManyToStakingPool(loginAddress, [tokenId])
-      .then(function(receipt) {
-        console.log("stake receipt: ", receipt);
-        alert("Stake success");
-      })
-    })
-
-    claimButton.addEventListener('click', async function() {
-      const claimable = await cnmNFTContract.isClaimable();
-      console.log("claimable is ", claimable);
-      if (claimable) {
-        const tokenId = document.getElementById("claimTokenId").value;
-        console.log("token ids: ", [tokenId]);
-        habitatWithSigner.claimManyFromHabitatAndYield([tokenId], false)
-        .then(function(receipt) {
-          console.log("claim receipt: ", receipt);
-          alert("Claim success");
-        })
-      } else {
-        alert("Not all genesis tokens are minted");
-      }
+    mintStakeButton.addEventListener('click', function() {
+      mint(true);
     })
 
     checkLogin();
 
+    addBtn.addEventListener('click', function() {
+      if (mintAmount < 4) {
+        mintAmount = mintAmount + 1;
+        mintAmountEl.textContent = mintAmount;
+        getMintPrice();
+      }
+    })
+
+    subBtn.addEventListener('click', function() {
+      if (mintAmount > 1) {
+        mintAmount = mintAmount - 1;
+        mintAmountEl.textContent = mintAmount;
+        getMintPrice();
+      }
+    })
+
     // detect Metamask account change
     ethereum.on('accountsChanged', function (accounts) {
       console.log('accountsChanges',accounts);
-      loginAddress = accounts[0];
+      if (accounts.length > 0) {
+        localStorage.setItem("loginAddress", accounts[0]);
+        loginAddress = accounts[0];
+      } else {
+        localStorage.removeItem("loginAddress");
+        loginAddress = null;
+      }
       toggleLoginBtns();
     });
 
